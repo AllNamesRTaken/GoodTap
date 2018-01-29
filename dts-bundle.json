@@ -1,0 +1,5 @@
+{
+    "name": "goodtap",
+    "main": "./dist/lib/index.d.ts",
+    "out": "../goodtap.d.ts"
+}
