@@ -24,6 +24,7 @@ export interface IOnOff {
     off(element: ITouchEvenElement, name: string): void;
 }
 export class GoodTap implements IOnOff {
+    version = "0.0.6";
     minSwipeDistance = 100;
     events = ["down", "up", "press", "tap", "swipe"];
     downEvents = ["down"];
