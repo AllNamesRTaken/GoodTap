@@ -1,3 +1,4 @@
+let VERSION = "0.0.9";
 import { Arr, Dictionary, Dom, Vec2, Timer} from "goodcore";
 
 export interface IGTEventFunction {
@@ -24,7 +25,7 @@ export interface IOnOff {
     off(element: ITouchEvenElement, name: string): void;
 }
 export class GoodTap implements IOnOff {
-    version = "0.0.6";
+    version = VERSION;
     minSwipeDistance = 100;
     events = ["down", "up", "press", "tap", "swipe"];
     downEvents = ["down"];
