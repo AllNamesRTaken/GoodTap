@@ -1,6 +1,6 @@
 {
   "name": "goodtap",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Tap, Press, Swipe events without all the event handlers",
   "main": "./dist/goodtap.es5.umd.min.js",
   "module": "./dist/lib/index.js",
