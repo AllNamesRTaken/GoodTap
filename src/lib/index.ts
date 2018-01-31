@@ -103,11 +103,11 @@ export class GoodTap implements IOnOff {
             Arr.until(this.downEvents, (name) => {
                 if (target!.hasAttribute(name)) {
                     stopPropagation = (this.handleEvent(name, ev, target!) === false);
-                    if (!stopPropagation && target!.hasAttribute("stopPropagation") && target!.hasAttribute("gt-false")) {
+                    if (!stopPropagation && target!.hasAttribute("stopPropagation") || target!.hasAttribute("gt-false")) {
                         stopPropagation = true;
                         ev.stopPropagation();
                     }
-                    if (target!.hasAttribute("preventDefault") && target!.hasAttribute("gt-false")) {
+                    if (target!.hasAttribute("preventDefault") || target!.hasAttribute("gt-false")) {
                         ev.preventDefault();
                     }
                 }
@@ -162,12 +162,12 @@ export class GoodTap implements IOnOff {
                             || name === "up"){
                             stopPropagation = (this.handleEvent(name, ev, target!) === false);
                         }
-                        if (stopPropagation || target!.hasAttribute("stopPropagation") && target!.hasAttribute("gt-false")) {
+                        if (stopPropagation || target!.hasAttribute("stopPropagation") || target!.hasAttribute("gt-false")) {
                             stopPropagation = true;
                             ev.stopPropagation();
                             delete target!.touchInfo;            
                         }
-                        if (target!.hasAttribute("preventDefault") && target!.hasAttribute("gt-false")) {
+                        if (target!.hasAttribute("preventDefault") || target!.hasAttribute("gt-false")) {
                             ev.preventDefault();
                         }
                     }
