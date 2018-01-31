@@ -16,12 +16,24 @@ or through unpgk as iife of you want to try it in JSBin etc.
 
 ```html
 <script src="https://unpkg.com/goodtap">
-    var tap = new GoodTap();
-    tap.on(document.getElementById("myElement"), "tap", (event, target, touch) => alert("you tapped " + target.id));
+    var tap = goodtap.init();
+    tap.on(document.getElementById("outer"), "tap", (event, target, touch) => alert("you tapped " + target.id));
 </script>
 
-<div id="myOther" preventDefault stopPropagation swipe="alert('you swiped ' + touch.swipeInfo.direction + ' on ' + this.id);"> 
+<div id="myOther" swipe="alert('you swiped ' + touch.swipeInfo.direction + ' on ' + this.id);"> 
     Swipe here 
+</div>
+<div id="presser" once press="alert('you long pressed');"> 
+    Long press here 
+</div>
+<div id="outer"> 
+    Tap here
+    <div id="inner1" tap="alert('you tapped the first inner div and it will bubble');">
+        Tap here
+    </div>
+    <div id="inner2" stopPropagation tap="alert('you tapped the second inner div and it doesn't bubble');">
+        Tap here
+    </div>
 </div>
 ```
 

@@ -29,7 +29,7 @@ export class GoodTap {
     upEventsAndPress: string[] = [];
     index: number = 0;
 
-    constructor(rootElement: HTMLElement) {    
+    constructor(rootElement?: HTMLElement) {    
         this.init(rootElement || document.body);
         this.eventAttr = this.events.map((name) => "[" + name + "]").join(",");
         this.upEventsAndPress = [...this.upEvents, "press"];        
@@ -99,11 +99,11 @@ export class GoodTap {
             Arr.until(this.downEvents, (name) => {
                 if (target!.hasAttribute(name)) {
                     stopPropagation = (this.handleEvent(name, ev, target!) === false);
-                    if (!stopPropagation && target!.hasAttribute("stopPropagation")) {
+                    if (!stopPropagation && target!.hasAttribute("stopPropagation") && target!.hasAttribute("gt-false")) {
                         stopPropagation = true;
                         ev.stopPropagation();
                     }
-                    if (target!.hasAttribute("preventDefault")) {
+                    if (target!.hasAttribute("preventDefault") && target!.hasAttribute("gt-false")) {
                         ev.preventDefault();
                     }
                 }
@@ -158,12 +158,12 @@ export class GoodTap {
                             || name === "up"){
                             stopPropagation = (this.handleEvent(name, ev, target!) === false);
                         }
-                        if (stopPropagation || target!.hasAttribute("stopPropagation")) {
+                        if (stopPropagation || target!.hasAttribute("stopPropagation") && target!.hasAttribute("gt-false")) {
                             stopPropagation = true;
                             ev.stopPropagation();
                             delete target!.touchInfo;            
                         }
-                        if (target!.hasAttribute("preventDefault")) {
+                        if (target!.hasAttribute("preventDefault") && target!.hasAttribute("gt-false")) {
                             ev.preventDefault();
                         }
                     }
@@ -235,4 +235,7 @@ export class GoodTap {
     public static hasTouchEvent() {
         return "ontouchInfo" in document.documentElement;
     }
+}
+export function init(root?: HTMLElement): GoodTap {
+    return new GoodTap(root);
 }
