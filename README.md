@@ -15,10 +15,7 @@ or through unpgk as iife of you want to try it in JSBin etc.
 # Examples
 
 ```html
-<script src="https://unpkg.com/goodtap">
-    var tap = goodtap.init();
-    tap.on(document.getElementById("outer"), "tap", (event, target, touch) => alert("you tapped " + target.id));
-</script>
+<script src="https://unpkg.com/goodtap"></script>
 
 <div id="myOther" swipe="alert('you swiped ' + touch.swipeInfo.direction + ' on ' + this.id);"> 
     Swipe here 
@@ -31,10 +28,14 @@ or through unpgk as iife of you want to try it in JSBin etc.
     <div id="inner1" tap="alert('you tapped the first inner div and it will bubble');">
         Tap here
     </div>
-    <div id="inner2" stopPropagation tap="alert('you tapped the second inner div and it doesn't bubble');">
+    <div id="inner2" stopPropagation tap="alert('you tapped the second inner div and it doesnt bubble');">
         Tap here
     </div>
 </div>
+<script>
+    var tap = goodtap.init();
+    tap.on(document.getElementById("outer"), "tap", (event, target, touch) => alert("you tapped " + target.id));
+</script>
 ```
 
 # TODO

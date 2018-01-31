@@ -195,7 +195,7 @@ export class GoodTap implements IOnOff {
                 result = (new Function("event", "target", "touch", action!)).bind(target)(ev, target, touchInfo);
             }
         } catch (err) {
-            throw name + " event function error on element '" + target.id + "'"
+            throw name + " event function error on element '" + target.id + "'\n" + err.toString();
         }
         return result;
     }
