@@ -19,7 +19,11 @@ export interface ITouchEvenElement extends HTMLElement {
     touchInfo?: ITouchInfo;
     [key: string]: any;
 }
-export class GoodTap {
+export interface IOnOff {
+    on(element: ITouchEvenElement, name: string, fn: IGTEventFunction): void;
+    off(element: ITouchEvenElement, name: string): void;
+}
+export class GoodTap implements IOnOff {
     minSwipeDistance = 100;
     events = ["down", "up", "press", "tap", "swipe"];
     downEvents = ["down"];
@@ -232,7 +236,7 @@ export class GoodTap {
             }, 50);
         }, 50);
     }
-    public static hasTouchEvent() {
+    public static hasTouchEvent(): boolean {
         return "ontouchInfo" in document.documentElement;
     }
 }
