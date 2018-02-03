@@ -24,4 +24,6 @@ interface IOnOff {
 }
 declare namespace goodcore {
     export function init(root?: HTMLElement): IOnOff;
+    export function hideKeyboard(): void;
+    export function outside(): void;
 }

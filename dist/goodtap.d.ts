@@ -23,3 +23,5 @@ interface IOnOff {
     off(element: ITouchEvenElement, name: string): void;
 }
 export function init(root?: HTMLElement): IOnOff;
+export function hideKeyboard(): void;
+export function outside(): void;

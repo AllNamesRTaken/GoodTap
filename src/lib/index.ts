@@ -1,5 +1,5 @@
-let VERSION = "0.0.9";
-import { Arr, Dictionary, Dom, Vec2, Timer} from "goodcore";
+let VERSION = "0.1.0";
+import { Arr, Dictionary, Dom, Vec2, Timer, Util, List} from "goodcore";
 
 export interface IGTEventFunction {
     (event: MouseEvent | TouchEvent, target: ITouchEvenElement, touch: ITouchInfo): any;
@@ -34,6 +34,8 @@ export class GoodTap implements IOnOff {
     eventAttr: string = "";
     upEventsAndPress: string[] = [];
     index: number = 0;
+    root: HTMLElement;
+    lastInsides: List<HTMLElement> = new List();
 
     constructor(rootElement?: HTMLElement) {    
         this.init(rootElement || document.body);
@@ -41,12 +43,14 @@ export class GoodTap implements IOnOff {
         this.upEventsAndPress = [...this.upEvents, "press"];        
     }
     public init(rootElement: HTMLElement): void {
-        if (GoodTap.hasTouchEvent()) {
-            rootElement.addEventListener("touchInfo", (ev: TouchEvent) => { this.begin(ev); });
+        if (this.hasTouchEvent()) {
+            rootElement.addEventListener("touchstart", (ev: TouchEvent) => { this.begin(ev); });
             rootElement.addEventListener("touchend", (ev: TouchEvent) => { this.end(ev); });
         }
         rootElement.addEventListener("mousedown", (ev: MouseEvent) => { this.begin(ev); });
         rootElement.addEventListener("mouseup", (ev: MouseEvent) => { this.end(ev); });
+        rootElement.addEventListener("focus", (ev: FocusEvent) => this.triggerOutside(ev.target as HTMLElement, ev), true)
+        this.root = rootElement;
     }
     private findTarget(el: ITouchEvenElement | null): ITouchEvenElement | null {
         let target: ITouchEvenElement | null = null;
@@ -57,6 +61,19 @@ export class GoodTap implements IOnOff {
             el = el.parentElement;
         }
         return target;
+    }
+    private findTargets(el: ITouchEvenElement | null): ITouchEvenElement[] {
+        let targets: ITouchEvenElement[] = [];
+        while (el && el.parentElement !== document as any) {
+            if (!el.id) {
+                el.id = Util.newUUID();
+            }
+            if (Dom.is(this.eventAttr, el)) {
+                targets.push(el);
+            }
+            el = el.parentElement;
+        }
+        return targets;
     }
     private getTouchPos(ev: TouchEvent | MouseEvent): Vec2 {
         let pos = new Vec2(0, 0);
@@ -77,14 +94,31 @@ export class GoodTap implements IOnOff {
             this.longPressIntervals.delete(touchInfo.index);
         }
     }
+    private triggerOutside(target: HTMLElement, ev: MouseEvent | TouchEvent | FocusEvent) {
+        let outside: List<HTMLElement> = new List(Dom.findAll("[outside]", this.root) as HTMLElement[]);        
+        if (outside.length > 0) {
+            let insides = new List(this.findTargets(target));
+            let preventOutside = insides.contains((el) => el.hasAttribute("preventDefault"));
+            if (!preventOutside) {
+                outside
+                    .filter((el: HTMLElement) => this.lastInsides.contains(el) && !insides.contains(el))
+                    .forEach((el: HTMLElement) => this.handleEvent("outside", ev, el!));
+                this.lastInsides = insides;
+            }
+        }
+    }
     private begin(ev: TouchEvent | MouseEvent) {
         // begin clean
         this.longPressIntervals.list.forEach((long: number) => clearInterval(long));
         this.longPressIntervals.clear();
 
+        let preventDefault = false;
         let stopPropagation = false;
         let target: ITouchEvenElement | null = ev.target as ITouchEvenElement;
         let loopCounter = 0;
+
+        this.triggerOutside(target, ev);
+
         while (loopCounter < 100 && (target = this.findTarget(target)) && !stopPropagation) {
             ++loopCounter;
             let pressInterval = null;
@@ -111,6 +145,7 @@ export class GoodTap implements IOnOff {
                     }
                     if (target!.hasAttribute("preventDefault") || target!.hasAttribute("gt-false")) {
                         ev.preventDefault();
+                        preventDefault = true;
                     }
                 }
                 return stopPropagation;
@@ -187,7 +222,7 @@ export class GoodTap implements IOnOff {
         this.longPressIntervals.list.forEach((long: number) => clearInterval(long));
         this.longPressIntervals.clear();
     }
-    private executeAction(ev: MouseEvent | TouchEvent, target: ITouchEvenElement, actionAttr: string, touchInfo: ITouchInfo): any {
+    private executeAction(ev: MouseEvent | TouchEvent | FocusEvent, target: ITouchEvenElement, actionAttr: string, touchInfo: ITouchInfo): any {
         let result = true;
         let action = target.getAttribute(actionAttr);
         try {
@@ -201,7 +236,7 @@ export class GoodTap implements IOnOff {
         }
         return result;
     }
-    private handleEvent(name: string, ev: MouseEvent | TouchEvent, target: ITouchEvenElement) {
+    private handleEvent(name: string, ev: MouseEvent | TouchEvent | FocusEvent, target: ITouchEvenElement) {
         let actionAttr: string = name;
         let result: boolean = true;
         if (target) {
@@ -225,7 +260,7 @@ export class GoodTap implements IOnOff {
         element.removeAttribute(name + "-action");
         delete element[name + "-fn"];
     }
-    public static hideKeyboard() {
+    public hideKeyboard(): void {
         let field = document.createElement("input");
         field.setAttribute("type", "text");
         document.body.appendChild(field);
@@ -238,8 +273,12 @@ export class GoodTap implements IOnOff {
             }, 50);
         }, 50);
     }
-    public static hasTouchEvent(): boolean {
-        return "ontouchInfo" in document.documentElement;
+    private hasTouchEvent(): boolean {
+        return "ontouchstart" in document.documentElement;
+    }
+    public outside(): void {
+        this.triggerOutside(this.root, new FocusEvent(""));
+        this.hideKeyboard();
     }
 }
 export function init(root?: HTMLElement): GoodTap {

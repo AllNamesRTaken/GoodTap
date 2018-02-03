@@ -1,36 +1,62 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
   <title>JS Bin</title>
-  <script src="https://unpkg.com/goodcore"></script>
-</head>
-  <div id="o1" class="outer" tap="alert(this.id);">
-    outer clickable
-    <div id="i1" class="inner" tap="alert(this.id);">
-      clickable
-    </div>
-    <div id="i2" class="inner">
-      not clickable
-    </div>
-    <div id="i3" class="inner" stopPropagation tap="alert(this.id);">
-      clickable stops propagation
-    </div>
-    <input id="t1">Normal textbox</input>
-    <input id="t1" tap="return false;">Capturing textbox</input>
-    <div id="m1" stopPropagation down="this.m = goodcore.Timer.now();" up="alert(goodcore.Timer.now() - this.m);">mouse down/up</div>
-    <div id="i4" class="inner" stopPropagation press="console.log('PRESSED');">
-      Long Press every 500ms
-    </div>
-    <div id="i4" class="inner" once pressInterval="300" stopPropagation press="console.log('300ms long press');">
-      Long Press after 300ms, only once
-    </div>
-    <div id="i4" style="height: 200px" class="inner" stopPropagation swipe="alert('swipe ' + (touch.swipeInfo.direction));">
-      Swipe here
-    </div>
-  </div>
-<body>
+  <script src="node_modules/goodcore/dist/goodcore.es5.iife.min.js"></script>
+  <!-- <script src="https://unpkg.com/goodtap"></script> -->
+  <script src="dist/goodtap.es5.iife.min.js"></script>
+  <style>
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
 
+    .selected {
+      background-color: lightblue;
+    }
+  </style>
+</head>
+<div id="o1" class="outer" tap="alert(this.id);">
+  outer clickable
+  <div id="i1" class="inner" tap="alert(this.id);">
+    clickable
+  </div>
+  <div id="i2" class="inner">
+    not clickable
+  </div>
+  <div id="i3" class="inner" stopPropagation tap="alert(this.id);">
+    clickable stops propagation
+  </div>
+  <input id="t1">Normal textbox</input>
+  <input id="t1" tap="return false;">Capturing textbox</input>
+  <div id="m1" stopPropagation down="this.m = goodcore.Timer.now();" up="alert(goodcore.Timer.now() - this.m);">mouse down/up</div>
+  <div id="i4" class="inner" stopPropagation press="console.log('PRESSED');">
+    Long Press every 500ms
+  </div>
+  <div id="i4" class="inner" once pressInterval="300" stopPropagation press="console.log('300ms long press');">
+    Long Press after 300ms, only once
+  </div>
+  <div id="i4" style="height: 200px" class="inner" stopPropagation swipe="alert('swipe ' + (touch.swipeInfo.direction));">
+    Swipe here
+  </div>
+  <div id="select1" class="inner" outside="this.classList.remove('selected'); console.log(this.id + ' unselected')" stopPropagation
+    tap="this.classList.add('selected'); console.log(this.id + ' selected')">
+    select me
+  </div>
+  <div id="select2" class="inner" outside="this.classList.remove('selected'); console.log(this.id + ' unselected')" stopPropagation
+    tap="this.classList.add('selected'); console.log(this.id + ' selected')">
+    no, select me
+  </div>
+</div>
+<script>
+  window.tap = goodtap.init();
+</script>
+
+<body>
 </body>
 </html>
