@@ -22,7 +22,7 @@ interface IOnOff {
     on(element: ITouchEvenElement, name: string, fn: IGTEventFunction): void;
     off(element: ITouchEvenElement, name: string): void;
 }
-declare namespace goodcore {
+declare namespace goodtap {
     export function init(root?: HTMLElement): IOnOff;
     export function hideKeyboard(): void;
     export function outside(): void;
