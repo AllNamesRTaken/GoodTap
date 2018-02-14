@@ -1,5 +1,8 @@
 let VERSION = "0.1.0";
-import { Arr, Dictionary, Dom, Vec2, Timer, Util, List} from "goodcore";
+import { until } from "goodcore/Arr";
+import { newUUID } from "goodcore/Util";
+import { is, findAll } from "goodcore/Dom";
+import { Dictionary, Vec2, Timer, List} from "goodcore";
 
 export interface IGTEventFunction {
     (event: MouseEvent | TouchEvent, target: ITouchEvenElement, touch: ITouchInfo): any;
@@ -55,7 +58,7 @@ export class GoodTap implements IOnOff {
     private findTarget(el: ITouchEvenElement | null): ITouchEvenElement | null {
         let target: ITouchEvenElement | null = null;
         while (el && el.parentElement !== document as any && target === null) {
-            if (Dom.is(this.eventAttr, el)) {
+            if (is(this.eventAttr, el)) {
                 target = el;
             }
             el = el.parentElement;
@@ -66,9 +69,9 @@ export class GoodTap implements IOnOff {
         let targets: ITouchEvenElement[] = [];
         while (el && el.parentElement !== document as any) {
             if (!el.id) {
-                el.id = Util.newUUID();
+                el.id = newUUID();
             }
-            if (Dom.is(this.eventAttr, el)) {
+            if (is(this.eventAttr, el)) {
                 targets.push(el);
             }
             el = el.parentElement;
@@ -95,7 +98,7 @@ export class GoodTap implements IOnOff {
         }
     }
     private triggerOutside(target: HTMLElement, ev: MouseEvent | TouchEvent | FocusEvent) {
-        let outside: List<HTMLElement> = new List(Dom.findAll("[outside]", this.root) as HTMLElement[]);        
+        let outside: List<HTMLElement> = new List(findAll("[outside]", this.root) as HTMLElement[]);        
         if (outside.length > 0) {
             let insides = new List(this.findTargets(target));
             let preventOutside = insides.contains((el) => el.hasAttribute("preventDefault"));
@@ -136,7 +139,7 @@ export class GoodTap implements IOnOff {
             if (pressInterval) {
                 this.longPressIntervals.set(target.touchInfo!.index, target.touchInfo!.long!);
             }
-            Arr.until(this.downEvents, (name) => {
+            until(this.downEvents, (name) => {
                 if (target!.hasAttribute(name)) {
                     stopPropagation = (this.handleEvent(name, ev, target!) === false);
                     if (!stopPropagation && target!.hasAttribute("stopPropagation") || target!.hasAttribute("gt-false")) {
@@ -191,7 +194,7 @@ export class GoodTap implements IOnOff {
                 clearInterval(this.longPressIntervals.get(touchInfo.index)!);
                 delete target.touchInfo;
             } else {
-                Arr.until(this.upEventsAndPress, (name) => {
+                until(this.upEventsAndPress, (name) => {
                     if (target!.hasAttribute(name)) {
                         let isSwipe = this.isSwipe(ev as TouchEvent | MouseEvent, target!);
                         if(name === "swipe" && isSwipe
@@ -215,7 +218,7 @@ export class GoodTap implements IOnOff {
         }
 
         // clean up
-        Dom.findAll(".gt-active").forEach((el: ITouchEvenElement) => {
+        findAll(".gt-active").forEach((el: ITouchEvenElement) => {
             el.classList.remove("gt-active");
             delete el.touchInfo;
         });

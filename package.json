@@ -30,7 +30,7 @@
     "bundle_d_ts": "node dts-bundle.js"
   },
   "dependencies": {
-    "goodcore": "^0.13.0"
+    "goodcore": "^0.14.6"
   },
   "devDependencies": {
     "@types/chai": "^4.0.4",
