@@ -1,8 +1,8 @@
 let VERSION = "0.1.0";
+import { Dictionary, Vec2, Timer, List} from "goodcore";
 import { until } from "goodcore/Arr";
 import { newUUID } from "goodcore/Util";
 import { is, findAll } from "goodcore/Dom";
-import { Dictionary, Vec2, Timer, List} from "goodcore";
 
 export interface IGTEventFunction {
     (event: MouseEvent | TouchEvent, target: ITouchEvenElement, touch: ITouchInfo): any;
@@ -13,6 +13,8 @@ export interface ITouchInfo {
     pos: Vec2,
     long: number | null;
     swipeInfo?: ISwipeInfo;
+    moveHandler: ((ev: TouchEvent) => void) | undefined;
+    dragResistance: number;
 }
 export interface ISwipeInfo {
     direction: "up" | "down" | "left" | "right";
@@ -30,7 +32,11 @@ export interface IOnOff {
 export class GoodTap implements IOnOff {
     version = VERSION;
     minSwipeDistance = 100;
-    events = ["down", "up", "press", "tap", "swipe"];
+    maxTapDuration = 400;
+    defaultLongPressDuration = 400;
+    defaultDragResistance = 0;
+    dragResistanceSquared: number = 0;
+    events = ["down", "drag", "up", "press", "tap", "swipe"];
     downEvents = ["down"];
     upEvents = ["up", "tap", "swipe"];
     longPressIntervals = new Dictionary<number>();
@@ -39,6 +45,8 @@ export class GoodTap implements IOnOff {
     index: number = 0;
     root: HTMLElement;
     lastInsides: List<HTMLElement> = new List();
+    dragging: List<HTMLElement> = new List();
+    isListeningToMovement: boolean = false;
 
     constructor(rootElement?: HTMLElement) {    
         this.init(rootElement || document.body);
@@ -47,12 +55,12 @@ export class GoodTap implements IOnOff {
     }
     public init(rootElement: HTMLElement): void {
         if (this.hasTouchEvent()) {
-            rootElement.addEventListener("touchstart", (ev: TouchEvent) => { this.begin(ev); });
-            rootElement.addEventListener("touchend", (ev: TouchEvent) => { this.end(ev); });
+            rootElement.addEventListener("touchstart", (ev: TouchEvent) => { this.start(ev, rootElement); });
+            rootElement.addEventListener("touchend", (ev: TouchEvent) => { this.end(ev, rootElement); });
         }
-        rootElement.addEventListener("mousedown", (ev: MouseEvent) => { this.begin(ev); });
-        rootElement.addEventListener("mouseup", (ev: MouseEvent) => { this.end(ev); });
-        rootElement.addEventListener("focus", (ev: FocusEvent) => this.triggerOutside(ev.target as HTMLElement, ev), true)
+        rootElement.addEventListener("mousedown", (ev: MouseEvent) => { this.start(ev, rootElement); });
+        rootElement.addEventListener("mouseup", (ev: MouseEvent) => { this.end(ev, rootElement); });
+        rootElement.addEventListener("focus", (ev: FocusEvent) => this.triggerOutside(ev.target as HTMLElement, ev, rootElement), true)
         this.root = rootElement;
     }
     private findTarget(el: ITouchEvenElement | null): ITouchEvenElement | null {
@@ -78,12 +86,14 @@ export class GoodTap implements IOnOff {
         }
         return targets;
     }
-    private getTouchPos(ev: TouchEvent | MouseEvent): Vec2 {
-        let pos = new Vec2(0, 0);
+    private getTouchPos(ev: TouchEvent | MouseEvent, pos?: Vec2): Vec2 {
+        pos = pos || new Vec2(0, 0);
         if (ev instanceof TouchEvent) {
-            pos = new Vec2( ev.changedTouches[0].pageX, ev.changedTouches[0].pageY );
+            pos.x = ev.changedTouches[0].pageX;
+            pos.y = ev.changedTouches[0].pageY;
         } else if (ev instanceof MouseEvent) {
-            pos = new Vec2( ev.pageX, ev.pageY );
+            pos.x = ev.pageX;
+            pos.y = ev.pageY;
         }
 
         return pos;
@@ -97,10 +107,10 @@ export class GoodTap implements IOnOff {
             this.longPressIntervals.delete(touchInfo.index);
         }
     }
-    private triggerOutside(target: HTMLElement, ev: MouseEvent | TouchEvent | FocusEvent) {
+    private triggerOutside(target: HTMLElement, ev: MouseEvent | TouchEvent | FocusEvent, rootElement?: HTMLElement) {
         let outside: List<HTMLElement> = new List(findAll("[outside]", this.root) as HTMLElement[]);        
         if (outside.length > 0) {
-            let insides = new List(this.findTargets(target));
+            let insides = new List<HTMLElement>(this.findTargets(target));
             let preventOutside = insides.contains((el) => el.hasAttribute("preventDefault"));
             if (!preventOutside) {
                 outside
@@ -110,7 +120,34 @@ export class GoodTap implements IOnOff {
             }
         }
     }
-    private begin(ev: TouchEvent | MouseEvent) {
+    private move(ev: TouchEvent, rootElement: HTMLElement, target: ITouchEvenElement, action: string): void {
+        let result = true;
+        let touchInfo = target.touchInfo!;
+        if (touchInfo === undefined) {
+            this.end(ev, rootElement);
+            return;
+        }
+        this.getTouchPos(ev, touchInfo.pos)
+        if (touchInfo.dragResistance === 0 || 
+            this.getTouchPos(ev).subtract(touchInfo.pos).lengthSq() < touchInfo.dragResistance) 
+        {
+            touchInfo.dragResistance = 0;
+            try {
+                if (action === "[fn]" && ("drag-fn") in target) {
+                    result = target["drag-fn"](ev, target, touchInfo);
+                } else {
+                    target["drag-fn"] = (new Function("event", "target", "touch", action!)).bind(target);
+                    result = target["drag-fn"](ev, target, touchInfo);
+                }
+            } catch (err) {
+                throw name + " event function error on element '" + target.id + "'\n" + err.toString();
+            }
+            if ( result === false ) {
+                this.end(ev, rootElement);
+            }
+        }
+    }
+    private start(ev: TouchEvent | MouseEvent, rootElement: HTMLElement) {
         // begin clean
         this.longPressIntervals.list.forEach((long: number) => clearInterval(long));
         this.longPressIntervals.clear();
@@ -120,21 +157,41 @@ export class GoodTap implements IOnOff {
         let target: ITouchEvenElement | null = ev.target as ITouchEvenElement;
         let loopCounter = 0;
 
-        this.triggerOutside(target, ev);
+        this.triggerOutside(target, ev, rootElement);
 
         while (loopCounter < 100 && (target = this.findTarget(target)) && !stopPropagation) {
             ++loopCounter;
             let pressInterval = null;
             if (target.hasAttribute("press")) {
                 pressInterval = setInterval(((target: ITouchEvenElement) => this.longPress(ev, target)).bind(this, target), 
-                    parseInt(target.getAttribute("pressInterval")!) || 500);
+                    parseInt(target.getAttribute("pressInterval")!) || this.defaultLongPressDuration);
+            }
+            let moveHandler: ((ev: TouchEvent) => void) | undefined = undefined;
+            let dragResistance: number = 0;
+            if (target.hasAttribute("drag")) {
+                dragResistance = parseInt(target!.getAttribute("dragResistance")!);
+                if (isNaN(dragResistance)) {
+                    dragResistance = this.defaultDragResistance;
+                }
+                dragResistance *= dragResistance;
+                let dragAction = target!.getAttribute("drag")!
+                moveHandler = ((t: ITouchEvenElement, d: string, ev: TouchEvent) => {
+                    this.move(ev, rootElement, t!, d);
+                }).bind(this, target, dragAction);
+            
+                if (this.hasTouchEvent()) {
+                    rootElement.addEventListener("touchmove", moveHandler!);
+                }
+                rootElement.addEventListener("mousemove", moveHandler!);
             }
             target.classList.add("gt-active");
             target.touchInfo = {
                 index: this.index++,
                 time: Timer.now(),
                 pos: this.getTouchPos(ev),
-                long: pressInterval
+                long: pressInterval,
+                moveHandler,
+                dragResistance,
             };
             if (pressInterval) {
                 this.longPressIntervals.set(target.touchInfo!.index, target.touchInfo!.long!);
@@ -179,27 +236,26 @@ export class GoodTap implements IOnOff {
         }
         return result;
     }
-    private end(ev: MouseEvent | TouchEvent) {
+    private end(ev: MouseEvent | TouchEvent, rootElement: HTMLElement) {
         let time = Timer.now();
         let stopPropagation = false;
         let target = ev.target as ITouchEvenElement | null;
         let loopCounter = 0;
+        let endedOutsideTargets = new List<HTMLElement>();
+        let originalTarget = target;
+        this.dragging.clear();
         // noprotect
         while (loopCounter < 100 && (target = this.findTarget(target)) && !stopPropagation) {
             ++loopCounter;
             let touchInfo = target.touchInfo!;
-            let endedOutsideOrMultiTouch = touchInfo === undefined;
-            if (endedOutsideOrMultiTouch && this.longPressIntervals.has(touchInfo.index)) {
-                target.classList.remove("gt-active");
-                clearInterval(this.longPressIntervals.get(touchInfo.index)!);
-                delete target.touchInfo;
-            } else {
+            if (touchInfo !== undefined) {
+                let duration = time - touchInfo.time;
                 until(this.upEventsAndPress, (name) => {
                     if (target!.hasAttribute(name)) {
                         let isSwipe = this.isSwipe(ev as TouchEvent | MouseEvent, target!);
-                        if(name === "swipe" && isSwipe
-                            || name === "tap" && !isSwipe
-                            || name === "up"){
+                        if((name === "swipe" && isSwipe)
+                            || (name === "tap" && !isSwipe && duration < this.maxTapDuration)
+                            || (name === "up")){
                             stopPropagation = (this.handleEvent(name, ev, target!) === false);
                         }
                         if (stopPropagation || target!.hasAttribute("stopPropagation") || target!.hasAttribute("gt-false")) {
@@ -220,9 +276,14 @@ export class GoodTap implements IOnOff {
         // clean up
         findAll(".gt-active").forEach((el: ITouchEvenElement) => {
             el.classList.remove("gt-active");
+            if (el.touchInfo !== undefined && el.touchInfo!.moveHandler !== undefined) {
+                rootElement.removeEventListener("touchmove", el.touchInfo!.moveHandler!);
+                rootElement.removeEventListener("mousemove", el.touchInfo!.moveHandler!);
+                this.handleEvent("dragend", ev, el!)
+            }
             delete el.touchInfo;
         });
-        this.longPressIntervals.list.forEach((long: number) => clearInterval(long));
+    this.longPressIntervals.list.forEach((long: number) => clearInterval(long));
         this.longPressIntervals.clear();
     }
     private executeAction(ev: MouseEvent | TouchEvent | FocusEvent, target: ITouchEvenElement, actionAttr: string, touchInfo: ITouchInfo): any {

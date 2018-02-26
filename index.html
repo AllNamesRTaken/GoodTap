@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
   <title>JS Bin</title>
-  <script src="node_modules/goodcore/dist/goodcore.es5.iife.min.js"></script>
+  <script src="node_modules/goodcore/goodcore.es5.iife.min.js"></script>
   <!-- <script src="https://unpkg.com/goodtap"></script> -->
   <script src="dist/goodtap.es5.iife.min.js"></script>
   <style>
@@ -41,7 +41,7 @@
   <div id="i4" class="inner" once pressInterval="300" stopPropagation press="console.log('300ms long press');">
     Long Press after 300ms, only once
   </div>
-  <div id="i4" style="height: 200px" class="inner" stopPropagation swipe="alert('swipe ' + (touch.swipeInfo.direction));">
+  <div id="i4" style="height: 200px; background-color:lightpink" class="inner" stopPropagation swipe="alert('swipe ' + (touch.swipeInfo.direction));">
     Swipe here
   </div>
   <div id="select1" class="inner" outside="this.classList.remove('selected'); console.log(this.id + ' unselected')" stopPropagation
@@ -53,8 +53,12 @@
     no, select me
   </div>
 </div>
+<div id="drag" class="outer" drag="document.getElementById('pos').innerText = JSON.stringify(touch.pos);" style="height: 200px; width: 100%; background-color:lightpink">
+start dragging here <span id="pos"></span>
+</div>
 <script>
   window.tap = goodtap.init();
+  tap.on(document.getElementById("drag") ,"dragend", () => document.getElementById("pos").innerText = "");
 </script>
 
 <body>
