@@ -53,11 +53,14 @@
     no, select me
   </div>
 </div>
-<div id="drag" class="outer" drag="document.getElementById('pos').innerText = JSON.stringify(touch.pos);" style="height: 200px; width: 100%; background-color:lightpink">
+<div id="drag" class="outer" drag="document.getElementById('pos').innerText = JSON.stringify(touch.pos.subtract(touch.origin));" style="height: 200px; width: 100%; background-color:lightpink">
 start dragging here <span id="pos"></span>
 </div>
 <script>
   window.tap = goodtap.init();
+  tap.on(document.getElementById("drag") ,"dragstart", (ev, target, touch) => {
+    touch.origin = new goodcore.Vec2(target.offsetLeft, target.offsetTop);
+  });
   tap.on(document.getElementById("drag") ,"dragend", () => document.getElementById("pos").innerText = "");
 </script>
 

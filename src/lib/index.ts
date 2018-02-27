@@ -193,6 +193,9 @@ export class GoodTap implements IOnOff {
                 moveHandler,
                 dragResistance,
             };
+            if( target.hasAttribute("dragstart") ) {
+                this.handleEvent("dragstart", ev, target);
+            }
             if (pressInterval) {
                 this.longPressIntervals.set(target.touchInfo!.index, target.touchInfo!.long!);
             }
