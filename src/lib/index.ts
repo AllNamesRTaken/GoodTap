@@ -1,4 +1,4 @@
-let VERSION = "0.1.0";
+let VERSION = "0.2.1";
 import { Dictionary, Vec2, Timer, List} from "goodcore";
 import { until } from "goodcore/Arr";
 import { newUUID } from "goodcore/Util";
@@ -149,7 +149,7 @@ export class GoodTap implements IOnOff {
     }
     private start(ev: TouchEvent | MouseEvent, rootElement: HTMLElement) {
         // begin clean
-        this.longPressIntervals.list.forEach((long: number) => clearInterval(long));
+        this.longPressIntervals.values.forEach((long: number) => clearInterval(long));
         this.longPressIntervals.clear();
 
         let preventDefault = false;
@@ -286,7 +286,7 @@ export class GoodTap implements IOnOff {
             }
             delete el.touchInfo;
         });
-    this.longPressIntervals.list.forEach((long: number) => clearInterval(long));
+    this.longPressIntervals.values.forEach((long: number) => clearInterval(long));
         this.longPressIntervals.clear();
     }
     private executeAction(ev: MouseEvent | TouchEvent | FocusEvent, target: ITouchEvenElement, actionAttr: string, touchInfo: ITouchInfo): any {
