@@ -1,6 +1,6 @@
 {
   "name": "goodtap",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "Tap, Press, Swipe events without all the event handlers",
   "main": "goodtap.bundle.js",
   "module": "index.js",
@@ -16,8 +16,8 @@
   "scripts": {
     "install_tools": "npm install && typings install",
     "clean": "rimraf ./dist",
-    "dev": "npm run clean && tsc -p tsconfig.app.json && webpack --env.MODE=development && gulp modifyBundle && gulp copyDTS",
-    "build": "npm run clean && tsc -p tsconfig.app.json && webpack --env.MODE=production && gulp modifyBundle && gulp copyDTS",
+    "dev": "npm run clean && tsc -p tsconfig.app.json && webpack --env.MODE=development && gulp modifyBundle && gulp copyDTS && gulp copyWebpackExternalsFn",
+    "build": "npm run clean && tsc -p tsconfig.app.json && webpack --env.MODE=production && gulp modifyBundle && gulp copyDTS && gulp copyWebpackExternalsFn",
     "test": "npm run clean && tsc -p tsconfig.test.json && npm run run_test",
     "testcoverage": "npm run clean && tsc -p tsconfig-test.json && npm run coveralls",
     "run_test": "mocha -r @std/esm ./dist/test/*Test.js",
@@ -25,10 +25,9 @@
     "cover": "npm run test && istanbul cover ./node_modules/mocha/bin/_mocha -- ./dist/test/*.js",
     "deploy": "gulp package && npm publish dist/lib"
   },
-  "dependencies": {
-    "goodcore": "^0.17.7"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "goodcore": "latest",
     "@std/esm": "^0.24.0",
     "@types/chai": "^4.0.4",
     "@types/jquery": "^3.2.12",
@@ -42,6 +41,7 @@
     "fork-ts-checker-webpack-plugin": "^0.4.1",
     "gulp": "^3.9.1",
     "gulp-debug": "^3.1.0",
+    "gulp-replace": "^0.6.1",
     "gulp-sequence": "^0.4.6",
     "happypack": "^5.0.0-beta.1",
     "ieee754": "^1.1.9",
