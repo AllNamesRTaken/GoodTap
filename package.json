@@ -1,6 +1,6 @@
 {
   "name": "goodtap",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Tap, Press, Swipe events without all the event handlers",
   "main": "goodtap.bundle.js",
   "module": "index.js",
