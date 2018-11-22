@@ -49,7 +49,6 @@ export class GoodTap implements IOnOff {
     defaultLongPressDuration = 400;
     defaultDragResistance = 0;
     dragResistanceSquared: number = 0;
-    events = ALL_EVENTS;
     downEvents: TDownEvents[] = ["down"];
     upEvents: TUpEvents[] = ["up", "tap", "swipe"];
     longPressIntervals = new Dictionary<NodeJS.Timer | number>();
@@ -62,13 +61,18 @@ export class GoodTap implements IOnOff {
     isListeningToMovement: boolean = false;
     config: GoodTapConfig = {map: {}};
 
-    constructor(rootElement?: HTMLElement) {    
-        this.init(rootElement || document.body);
-        this.eventAttr = this.events.map((name) => "[" + name + "]").join(",");
-        this.upEventsAndPress = [...this.upEvents, "press"];        
+    constructor(rootElement?: HTMLElement, config?: Partial<GoodTapConfig>) {    
+        this.upEventsAndPress = [...this.upEvents, "press"];
+        this.init(rootElement || document.body, config);
     }
     public init(rootElement: HTMLElement, config?: Partial<GoodTapConfig>): void {
         this.config = {...this.config, ...config};
+
+        // map renamed events
+        this.eventAttr = ALL_EVENTS.map((name) => "[" + (this.config.map[name as TAllEvents] || name) + "]" ).join(",");
+        this.downEvents = this.downEvents.map((name) => (this.config.map[name as TAllEvents] || name) as any );
+        this.upEventsAndPress = this.upEventsAndPress.map((name) => (this.config.map[name as TAllEvents] || name) as any );
+
         if (this.hasTouchEvent()) {
             rootElement.addEventListener("touchstart", (ev: TouchEvent) => { this.start(ev, rootElement); });
             rootElement.addEventListener("touchend", (ev: TouchEvent) => { this.end(ev, rootElement); });
@@ -116,21 +120,21 @@ export class GoodTap implements IOnOff {
     private longPress(ev: MouseEvent | TouchEvent, target: ITouchEvenElement) {
         let result = true;
         let touchInfo = target.touchInfo!;
-        result = this.executeAction(ev, target, "press", touchInfo);
+        result = this.executeAction(ev, target, this.mapEvent("press") as TAllEvents, touchInfo);
         if(result === false || target.hasAttribute("once")) {
             clearInterval(this.longPressIntervals.get(touchInfo.index)! as NodeJS.Timer & number);
             this.longPressIntervals.delete(touchInfo.index);
         }
     }
     private triggerOutside(target: HTMLElement, ev: MouseEvent | TouchEvent | FocusEvent, rootElement?: HTMLElement) {
-        let outside: List<HTMLElement> = new List(findAll("[outside]", this.root) as HTMLElement[]);        
+        let outside: List<HTMLElement> = new List(findAll(`[${this.mapEvent("outside")}]`, this.root) as HTMLElement[]);        
         if (outside.length > 0) {
             let insides = new List<HTMLElement>(this.findTargets(target));
             let preventOutside = insides.contains((el) => el.hasAttribute("preventDefault"));
             if (!preventOutside) {
                 outside
                     .filter((el: HTMLElement) => this.lastInsides.contains(el) && !insides.contains(el))
-                    .forEach((el: HTMLElement) => this.handleEvent("outside", ev, el!));
+                    .forEach((el: HTMLElement) => this.handleEvent(this.mapEvent("outside") as TAllEvents, ev, el!));
                 this.lastInsides = insides;
             }
         }
@@ -198,21 +202,21 @@ export class GoodTap implements IOnOff {
         while (loopCounter < 100 && (target = this.findTarget(target)) && !stopPropagation) {
             ++loopCounter;
             let pressInterval: NodeJS.Timer | number | null = null;
-            if (target.hasAttribute("press")) {
+            if (target.hasAttribute(this.mapEvent("press"))) {
                 pressInterval = setInterval(((target: ITouchEvenElement) => this.longPress(ev, target)).bind(this, target), 
                     parseInt(target.getAttribute("pressInterval")!) || this.defaultLongPressDuration);
             }
             let moveHandler: ((ev: TouchEvent) => void) | undefined = undefined;
             let dragResistance: number = 0;
             let hasDragTarget = false;
-            if (target.hasAttribute("drag")) {
+            if (target.hasAttribute(this.mapEvent("drag"))) {
                 hasDragTarget = !!target.getAttribute("dragTarget");
                 dragResistance = parseInt(target!.getAttribute("dragResistance")!);
                 if (isNaN(dragResistance)) {
                     dragResistance = this.defaultDragResistance;
                 }
                 dragResistance *= dragResistance;
-                let dragAction = target!.getAttribute("drag")!
+                let dragAction = target!.getAttribute(this.mapEvent("drag"))!
                 moveHandler = ((t: ITouchEvenElement, d: string, ev: TouchEvent) => {
                     this.move(ev, rootElement, t!, d);
                 }).bind(this, target, dragAction);
@@ -238,8 +242,8 @@ export class GoodTap implements IOnOff {
                 dragTargetOrigin: hasDragTarget ? new Vec2(parseInt(dragTarget.style.left || "0"), parseInt(dragTarget.style.top || "0")): undefined
             };
 
-            if( target.hasAttribute("dragstart") ) {
-                this.handleEvent("dragstart", ev, target);
+            if( target.hasAttribute(this.mapEvent("dragstart")) ) {
+                this.handleEvent(this.mapEvent("dragstart") as any, ev, target);
             }
             if (pressInterval) {
                 this.longPressIntervals.set(target.touchInfo!.index, target.touchInfo!.long!);
@@ -302,9 +306,9 @@ export class GoodTap implements IOnOff {
                 until(this.upEventsAndPress, (name) => {
                     if (target!.hasAttribute(name)) {
                         let isSwipe = this.isSwipe(ev as TouchEvent | MouseEvent, target!);
-                        if((name === "swipe" && isSwipe)
-                            || (name === "tap" && !isSwipe && duration < this.maxTapDuration)
-                            || (name === "up")){
+                        if((name === this.mapEvent("swipe") && isSwipe)
+                            || (name === this.mapEvent("tap") && !isSwipe && duration < this.maxTapDuration)
+                            || (name === this.mapEvent("up"))){
                             stopPropagation = (this.handleEvent(name, ev, target!) === false);
                         }
                         if (stopPropagation || target!.hasAttribute("stopPropagation") || target!.hasAttribute("gt-false")) {
@@ -328,24 +332,24 @@ export class GoodTap implements IOnOff {
             if (el.touchInfo !== undefined && el.touchInfo!.moveHandler !== undefined) {
                 rootElement.removeEventListener("touchmove", el.touchInfo!.moveHandler!);
                 rootElement.removeEventListener("mousemove", el.touchInfo!.moveHandler!);
-                this.handleEvent("dragend", ev, el!)
+                this.handleEvent(this.mapEvent("dragend") as TAllEvents, ev, el!)
             }
             delete el.touchInfo;
         });
     this.longPressIntervals.values.forEach((long: number) => clearInterval(long));
         this.longPressIntervals.clear();
     }
-    private mapAttr(actionAttr: TAllEvents): string {
-        let result: string = actionAttr;
-        if ( isNotUndefined(this.config.map[actionAttr]) ) {
-            result = this.config.map[actionAttr]!;
+    private mapEvent(event: TAllEvents): string {
+        let result: string = event;
+        if ( isNotUndefined(this.config.map[event]) ) {
+            result = this.config.map[event]!;
         }
         return result;
     }
     private executeAction(ev: MouseEvent | TouchEvent | FocusEvent, target: ITouchEvenElement, eventName: TAllEvents, touchInfo: ITouchInfo): any {
         let result = true;
-        if ( eventName === "outside" || !touchInfo.prevented[eventName] ) {
-            let attr = this.mapAttr(eventName);
+        if ( eventName === this.mapEvent("outside") || !touchInfo.prevented[eventName] ) {
+            let attr = this.mapEvent(eventName);
             let action = target.getAttribute(attr);
             try {
                 if (action === "[fn]" && (attr + "-fn") in target) {
@@ -403,6 +407,6 @@ export class GoodTap implements IOnOff {
         this.hideKeyboard();
     }
 }
-export function init(root?: HTMLElement): GoodTap {
-    return new GoodTap(root);
+export function init(root?: HTMLElement, config?: Partial<GoodTapConfig>): GoodTap {
+    return new GoodTap(root, config);
 }
