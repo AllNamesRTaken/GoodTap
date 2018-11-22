@@ -53,13 +53,16 @@
     no, select me
   </div>
 </div>
-<div id="drag" class="outer" drag="document.getElementById('pos').innerText = JSON.stringify(touch.pos.subtract(touch.origin));" style="height: 200px; width: 100%; background-color:lightpink">
+<div id="drag" class="outer" noTouchScroll drag="document.getElementById('pos').innerText = JSON.stringify({x: touch.pos.x, y: touch.pos.y});" style="height: 200px; width: 100%; background-color:lightpink">
 start dragging here <span id="pos"></span>
+  <div id="drag2" class="inner" draggable restrict="drag,y" style="position: relative; height: 100px; width: 150px; background-color:hotpink">
+    <div noTouchScroll drag dragTarget="drag2" gt-false style="height: 30px; background-color: skyblue;"> drag handle </div>
+  </div>
 </div>
 <script>
   window.tap = goodtap.init();
   tap.on(document.getElementById("drag") ,"dragstart", (ev, target, touch) => {
-    touch.origin = new goodcore.Vec2(target.offsetLeft, target.offsetTop);
+    touch.absorigin = new goodcore.Vec2(target.offsetLeft, target.offsetTop);
   });
   tap.on(document.getElementById("drag") ,"dragend", () => document.getElementById("pos").innerText = "");
 </script>
